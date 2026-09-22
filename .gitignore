@@ -1,0 +1,18 @@
+# Xcode / Swift Package Manager
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.build.db
+
+# App bundle build output
+app/build/
+*.dmg
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

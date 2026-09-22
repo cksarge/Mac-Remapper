@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Download — Mac Remapper</title>
+<meta name="description" content="Download Mac Remapper, a free native menu bar app for remapping keys and building keyboard macros on macOS.">
+<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="5" width="20" height="14" rx="2.5"></rect>
+        <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h8"></path>
+      </svg>
+      Mac Remapper
+    </a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18"></path>
+      </svg>
+    </button>
+    <ul class="nav-links" data-open="false">
+      <li><a href="index.html#features">Features</a></li>
+      <li><a href="index.html#how-it-works">How it works</a></li>
+      <li><a href="https://github.com/cksarge/Mac-Remapper">GitHub</a></li>
+      <li><a class="btn btn-primary" href="download.html">Download</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main>
+  <section>
+    <div class="wrap">
+      <div class="download-card">
+        <div class="icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12M12 15l-4-4M12 15l4-4"></path>
+            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path>
+          </svg>
+        </div>
+        <h1>Download Mac Remapper</h1>
+        <p>Free and open source. Runs entirely on your Mac.</p>
+
+        <a class="btn btn-primary btn-block" href="https://github.com/cksarge/Mac-Remapper/releases/latest/download/MacRemapper.dmg">
+          Download for macOS
+        </a>
+
+        <div class="download-meta">
+          <div>
+            <strong>0.1.0</strong>
+            Latest version
+          </div>
+          <div>
+            <strong>macOS 13+</strong>
+            Requires Ventura or later
+          </div>
+          <div>
+            <strong>Apple Silicon &amp; Intel</strong>
+            Universal build
+          </div>
+        </div>
+
+        <div class="requirements">
+          <h3>Before you install</h3>
+          <ul>
+            <li>Mac Remapper needs Accessibility access to remap keys system-wide — you'll be prompted to grant it on first launch.</li>
+            <li>The app isn't notarized by Apple yet, so Gatekeeper will warn you the first time you open it (see step 3 below).</li>
+            <li>Your key mappings are stored locally in <code>~/Library/Application&nbsp;Support/MacRemapper</code> and never leave your Mac.</li>
+          </ul>
+        </div>
+
+        <div class="install-steps">
+          <h3>Installing</h3>
+          <ol>
+            <li>Download the <code>.dmg</code> above and open it.</li>
+            <li>Drag <strong>Mac Remapper</strong> into your Applications folder.</li>
+            <li>Since the app isn't notarized yet, <strong>right-click (or Control-click) the app and choose “Open”</strong>, then confirm in the dialog that appears. You only need to do this once.</li>
+            <li>Grant Accessibility access when prompted, then start creating profiles from the menu bar icon.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p class="footer-note">© <span id="year"></span> Mac Remapper. Not affiliated with Apple Inc.</p>
+    <ul class="footer-links">
+      <li><a href="https://github.com/cksarge/Mac-Remapper">GitHub</a></li>
+      <li><a href="https://github.com/cksarge/Mac-Remapper/releases">Releases</a></li>
+      <li><a href="https://github.com/cksarge/Mac-Remapper/issues">Report an issue</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+<script src="js/main.js"></script>
+</body>
+</html>
