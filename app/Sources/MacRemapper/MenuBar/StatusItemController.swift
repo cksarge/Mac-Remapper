@@ -8,6 +8,7 @@ import MacRemapperCore
 /// which SwiftUI's `MenuBarExtra` menu style can't render.
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let appState: AppState
+    private let updateChecker: UpdateChecker
     private let showSettings: () -> Void
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
@@ -15,8 +16,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var isMenuOpen = false
     private var cancellables: Set<AnyCancellable> = []
 
-    init(appState: AppState, showSettings: @escaping () -> Void) {
+    init(appState: AppState, updateChecker: UpdateChecker, showSettings: @escaping () -> Void) {
         self.appState = appState
+        self.updateChecker = updateChecker
         self.showSettings = showSettings
         super.init()
 
@@ -35,6 +37,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // objectWillChange fires before the new values land; apply them on the next pass
         // (in common modes, so it also runs while the menu is open and tracking).
         appState.objectWillChange
+            .merge(with: updateChecker.objectWillChange)
             .sink { [weak self] _ in
                 RunLoop.main.perform(inModes: [.common]) { self?.stateDidChange() }
             }
@@ -83,6 +86,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.removeItem(at: 1)
         }
         menu.addItem(.separator())
+
+        if let update = updateChecker.availableUpdate {
+            let item = actionItem("Update Available: Version \(update.version)…", action: #selector(openUpdatePage))
+            item.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(paletteColors: [.systemBlue]))
+            menu.addItem(item)
+            menu.addItem(.separator())
+        }
 
         if appState.hasRunningMacros {
             let item = actionItem("Stop Running Macros", action: #selector(stopMacros))
@@ -167,6 +178,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         image.isTemplate = false
         return image
+    }
+
+    @objc private func openUpdatePage() {
+        guard let update = updateChecker.availableUpdate else { return }
+        NSWorkspace.shared.open(update.pageURL)
     }
 
     @objc private func stopMacros() {

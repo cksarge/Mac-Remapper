@@ -29,14 +29,16 @@ struct MacRemapperApp: App {
 /// the Settings window.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
+    private let updateChecker = UpdateChecker()
     private lazy var settingsWindow = SettingsWindowController(appState: appState)
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        statusItemController = StatusItemController(appState: appState) { [weak self] in
+        statusItemController = StatusItemController(appState: appState, updateChecker: updateChecker) { [weak self] in
             self?.showSettings()
         }
+        updateChecker.start()
     }
 
     func showSettings() {

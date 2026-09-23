@@ -26,6 +26,7 @@ Mac-Remapper/
 - **Run control**: per macro, pressing the trigger while it runs can ignore / restart / run another copy / stop. An optional separate stop key and a **Stop Running Macros** menu item are also available.
 - **Profiles**: **Global** or scoped to specific apps. Profiles can be dragged into priority order, and overridden mappings show a warning.
 - **Menu bar app**: a native menu with live status and an on/off switch, plus Launch at Login and import/export of profiles as JSON.
+- **Update notices**: checks the latest GitHub release at launch and every 12 hours, and shows **Update Available** in the menu when a newer version exists. Installing stays manual.
 
 Global key remapping needs a system-wide `CGEventTap`, which the App Store sandbox doesn't allow. So the app ships as a direct-download `.dmg`, not through the Mac App Store.
 

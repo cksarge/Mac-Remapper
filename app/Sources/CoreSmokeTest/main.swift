@@ -231,6 +231,12 @@ do {
     check(web.events == ["scroll up 240", "open https://example.com"], "Scroll and open-webpage steps run")
 }
 
+// MARK: - AppVersion
+
+check(AppVersion.isVersion("1.0.10", newerThan: "1.0.9"), "Versions compare numerically")
+check(AppVersion.isVersion("v1.0.1", newerThan: "1.0.0"), "Release tags with a v prefix compare")
+check(!AppVersion.isVersion("1.1", newerThan: "1.1.0"), "1.1 equals 1.1.0")
+
 // MARK: - ProfileStore persistence
 
 do {
