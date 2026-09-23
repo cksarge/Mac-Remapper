@@ -4,10 +4,17 @@ import UniformTypeIdentifiers
 
 /// Exports/imports a single profile as a standalone JSON file for sharing between users.
 public enum ImportExport {
+    /// Both panels start here (instead of wherever a panel was last used, often Applications),
+    /// so Import opens right where Export saved.
+    private static var defaultDirectory: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    }
+
     public static func exportProfile(_ profile: Profile) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
+        panel.directoryURL = defaultDirectory
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard let data = try? JSONEncoder.macRemapper.encode(profile) else { return }
         try? data.write(to: url, options: .atomic)
@@ -19,6 +26,7 @@ public enum ImportExport {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
+        panel.directoryURL = defaultDirectory
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         guard let data = try? Data(contentsOf: url) else { return nil }
         guard var profile = try? JSONDecoder.macRemapper.decode(Profile.self, from: data) else { return nil }

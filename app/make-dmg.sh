@@ -26,7 +26,7 @@ mkdir -p "$STAGING_DIR"
 cp -R "$APP_BUNDLE" "$STAGING_DIR/"
 ln -s /Applications "$STAGING_DIR/Applications"
 
-echo "Creating $DMG_PATH…"
+echo "Creating ${DMG_PATH}…"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING_DIR" -ov -format UDZO "$DMG_PATH"
 
 rm -rf "$STAGING_DIR"

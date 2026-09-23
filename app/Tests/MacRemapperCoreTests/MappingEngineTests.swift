@@ -40,7 +40,7 @@ struct MappingEngineTests {
         let appProfile = Profile(
             name: "Game Profile",
             scope: .apps(bundleIdentifiers: ["com.example.game"]),
-            mappings: [Mapping(trigger: wKey, action: .macro(steps: [MacroStep(combo: f13, delayAfterMs: 0)]))]
+            mappings: [Mapping(trigger: wKey, action: .macro(steps: [.keystroke(f13)]))]
         )
         let engine = MappingEngine()
 
@@ -84,5 +84,40 @@ struct MappingEngineTests {
             Issue.record("Expected passthrough for disabled mapping")
             return
         }
+    }
+
+    @Test func higherProfileWinsBetweenConflictingGlobals() {
+        let downArrow = KeyCombo(keyCode: 125, modifiers: [])
+        let first = Profile(name: "First", scope: .global,
+                            mappings: [Mapping(trigger: wKey, action: .remap(output: upArrow))])
+        let second = Profile(name: "Second", scope: .global,
+                             mappings: [Mapping(trigger: wKey, action: .remap(output: downArrow))])
+        let engine = MappingEngine()
+        engine.rebuild(profiles: [first, second], frontmostBundleID: nil)
+        guard case .remap(let output) = engine.resolve(wKey) else {
+            Issue.record("Expected remap")
+            return
+        }
+        #expect(output == upArrow)
+        #expect(MappingPrecedence.overridingProfile(of: second.mappings[0], in: second, among: [first, second])?.id == first.id)
+        #expect(MappingPrecedence.overridingProfile(of: first.mappings[0], in: first, among: [first, second]) == nil)
+    }
+
+    @Test func appScopedOverGlobalIsNotReportedAsConflict() {
+        let global = Profile(name: "Global", scope: .global,
+                             mappings: [Mapping(trigger: wKey, action: .remap(output: upArrow))])
+        let app = Profile(name: "Game", scope: .apps(bundleIdentifiers: ["com.example.game"]),
+                          mappings: [Mapping(trigger: wKey, action: .macro(steps: [.keystroke(f13)]))])
+        #expect(MappingPrecedence.overridingProfile(of: global.mappings[0], in: global, among: [app, global]) == nil)
+        #expect(MappingPrecedence.overridingProfile(of: app.mappings[0], in: app, among: [global, app]) == nil)
+    }
+
+    @Test func duplicateTriggerWithinProfileIsReported() {
+        let profile = Profile(name: "Dupes", scope: .global, mappings: [
+            Mapping(trigger: wKey, action: .remap(output: upArrow)),
+            Mapping(trigger: wKey, action: .remap(output: f13))
+        ])
+        #expect(MappingPrecedence.overridingProfile(of: profile.mappings[1], in: profile, among: [profile])?.id == profile.id)
+        #expect(MappingPrecedence.overridingProfile(of: profile.mappings[0], in: profile, among: [profile]) == nil)
     }
 }

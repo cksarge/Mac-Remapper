@@ -7,6 +7,7 @@
 <title>Download — Mac Remapper</title>
 <meta name="description" content="Download Mac Remapper, a free native menu bar app for remapping keys and building keyboard macros on macOS.">
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -14,10 +15,7 @@
 <nav class="site-nav">
   <div class="wrap">
     <a class="brand" href="index.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="2" y="5" width="20" height="14" rx="2.5"></rect>
-        <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h8"></path>
-      </svg>
+      <img src="assets/icons/favicon.svg" alt="" width="28" height="28">
       Mac Remapper
     </a>
     <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
@@ -38,12 +36,7 @@
   <section>
     <div class="wrap">
       <div class="download-card">
-        <div class="icon-lg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v12M12 15l-4-4M12 15l4-4"></path>
-            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path>
-          </svg>
-        </div>
+        <img class="download-icon" src="assets/icons/app-icon-512.png" alt="Mac Remapper app icon" width="128" height="128">
         <h1>Download Mac Remapper</h1>
         <p>Free and open source. Runs entirely on your Mac.</p>
 
@@ -53,7 +46,7 @@
 
         <div class="download-meta">
           <div>
-            <strong>0.1.0</strong>
+            <strong>1.0.0</strong>
             Latest version
           </div>
           <div>
@@ -70,7 +63,7 @@
           <h3>Before you install</h3>
           <ul>
             <li>Mac Remapper needs Accessibility access to remap keys system-wide — you'll be prompted to grant it on first launch.</li>
-            <li>The app isn't notarized by Apple yet, so Gatekeeper will warn you the first time you open it (see step 3 below).</li>
+            <li>The app isn't signed or notarized by Apple, so macOS will warn you the first time you open it. You only need to approve it once (see step 3 below).</li>
             <li>Your key mappings are stored locally in <code>~/Library/Application&nbsp;Support/MacRemapper</code> and never leave your Mac.</li>
           </ul>
         </div>
@@ -80,7 +73,7 @@
           <ol>
             <li>Download the <code>.dmg</code> above and open it.</li>
             <li>Drag <strong>Mac Remapper</strong> into your Applications folder.</li>
-            <li>Since the app isn't notarized yet, <strong>right-click (or Control-click) the app and choose “Open”</strong>, then confirm in the dialog that appears. You only need to do this once.</li>
+            <li>Open Mac Remapper. macOS will say it can't verify the app — click <strong>Done</strong>. Then open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, click <strong>Open Anyway</strong> next to the Mac Remapper message, and confirm. You only need to do this once.</li>
             <li>Grant Accessibility access when prompted, then start creating profiles from the menu bar icon.</li>
           </ol>
         </div>

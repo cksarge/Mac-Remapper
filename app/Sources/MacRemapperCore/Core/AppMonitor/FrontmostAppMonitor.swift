@@ -24,6 +24,9 @@ final class FrontmostAppMonitor {
         ) { [weak self] notification in
             guard let self else { return }
             let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            // Opening our own menu bar popover or Settings window activates this app; keep
+            // tracking the app the user came from so its profiles stay active and visible.
+            guard app?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
             self.frontmostBundleID = app?.bundleIdentifier
             self.onChange?(self.frontmostBundleID)
         }

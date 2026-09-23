@@ -53,7 +53,32 @@ public struct KeyCombo: Codable, Hashable {
 
     public init(keyCode: UInt16, modifiers: ModifierFlags = []) {
         self.keyCode = keyCode
+        // The fn flag macOS stamps on arrows/F-keys isn't a real modifier: keeping it
+        // would make "Up" record as fn+Up (Page Up) and never match a plain arrow press.
+        var modifiers = modifiers
+        if KeyCodeTable.hasImplicitFn(keyCode) {
+            modifiers.remove(.function)
+        }
         self.modifiers = modifiers
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case keyCode, modifiers
+    }
+
+    /// Routes decoding through `init(keyCode:modifiers:)`, which also repairs combos
+    /// saved before the implicit-fn flag was stripped.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            keyCode: try container.decode(UInt16.self, forKey: .keyCode),
+            modifiers: try container.decode(ModifierFlags.self, forKey: .modifiers)
+        )
+    }
+
+    /// Flags for posting this combo: the held modifiers plus any the key implicitly carries.
+    var cgEventFlags: CGEventFlags {
+        modifiers.cgEventFlags.union(KeyCodeTable.implicitFlags(for: keyCode))
     }
 
     /// Placeholder for "no key captured yet" — see `KeyCodeTable.unsetKeyCode`.

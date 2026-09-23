@@ -16,6 +16,7 @@ struct AppPickerView: View {
     @Binding var bundleIdentifiers: [String]
 
     @State private var runningApps: [PickedApp] = []
+    @State private var isChoosingFromDisk = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -26,7 +27,12 @@ struct AppPickerView: View {
             } else {
                 ForEach(bundleIdentifiers, id: \.self) { id in
                     HStack {
-                        Text(displayName(for: id))
+                        if let icon = AppInfo.icon(for: id) {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .frame(width: 18, height: 18)
+                        }
+                        Text(AppInfo.displayName(for: id))
                         Text(id)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -53,14 +59,17 @@ struct AppPickerView: View {
                 .onAppear(perform: refreshRunningApps)
 
                 Button("Choose from Disk…") {
-                    chooseFromDisk()
+                    isChoosingFromDisk = true
                 }
             }
         }
-    }
-
-    private func displayName(for bundleIdentifier: String) -> String {
-        runningApps.first { $0.bundleIdentifier == bundleIdentifier }?.name ?? bundleIdentifier
+        // SwiftUI's importer presents reliably from this accessory (no Dock icon) app;
+        // a manually run NSOpenPanel could open behind the Settings window or not at all.
+        .fileImporter(isPresented: $isChoosingFromDisk, allowedContentTypes: [.application]) { result in
+            guard case .success(let url) = result,
+                  let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
+            addBundleIdentifier(bundleID)
+        }
     }
 
     private func addBundleIdentifier(_ id: String) {
@@ -76,15 +85,5 @@ struct AppPickerView: View {
                 return PickedApp(bundleIdentifier: bundleID, name: app.localizedName ?? bundleID, icon: app.icon)
             }
             .sorted { $0.name < $1.name }
-    }
-
-    private func chooseFromDisk() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.application]
-        panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard let bundle = Bundle(url: url), let bundleID = bundle.bundleIdentifier else { return }
-        addBundleIdentifier(bundleID)
     }
 }

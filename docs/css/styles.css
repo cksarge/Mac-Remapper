@@ -134,10 +134,9 @@ a {
   color: var(--color-text);
 }
 
-.brand svg {
+.brand img {
   inline-size: 1.75rem;
   block-size: 1.75rem;
-  color: var(--color-accent);
 }
 
 .nav-links {
@@ -223,6 +222,20 @@ a {
   text-align: center;
 }
 
+.hero-icon {
+  display: block;
+  inline-size: clamp(7rem, 5rem + 8vw, 10rem);
+  block-size: auto;
+  margin-inline: auto;
+  margin-block-end: 1.25rem;
+  animation: hero-icon-float 6s ease-in-out infinite;
+}
+
+@keyframes hero-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.5rem); }
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -298,7 +311,8 @@ section {
    ========================================================================== */
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr));
+  /* Wide enough cards that the nine features form a 3 × 3 grid on desktop. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   gap: 1.25rem;
 }
 
@@ -453,21 +467,12 @@ section {
   text-align: center;
 }
 
-.download-card .icon-lg {
-  inline-size: 4rem;
-  block-size: 4rem;
+.download-icon {
+  display: block;
+  inline-size: 8rem;
+  block-size: auto;
   margin-inline: auto;
-  margin-block-end: 1.25rem;
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--color-accent) 14%, transparent);
-  color: var(--color-accent);
-  display: grid;
-  place-items: center;
-}
-
-.download-card .icon-lg svg {
-  inline-size: 2rem;
-  block-size: 2rem;
+  margin-block: -0.75rem 0.5rem;
 }
 
 .download-meta {
@@ -583,5 +588,9 @@ section {
   * {
     transition-duration: 0.001ms !important;
     animation-duration: 0.001ms !important;
+  }
+
+  .hero-icon {
+    animation: none;
   }
 }

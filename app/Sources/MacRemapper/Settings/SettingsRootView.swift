@@ -7,35 +7,16 @@ struct SettingsRootView: View {
     var body: some View {
         Group {
             if appState.accessibilityPermission.isTrusted {
-                TabView {
-                    ProfileListView()
-                        .environmentObject(appState.profileStore)
-                        .tabItem { Label("Profiles", systemImage: "keyboard") }
-
-                    GeneralSettingsView()
-                        .environmentObject(appState.launchAtLogin)
-                        .tabItem { Label("General", systemImage: "gearshape") }
-                }
+                ProfileListView()
+                    .environmentObject(appState.profileStore)
+                    .environmentObject(appState.launchAtLogin)
             } else {
                 OnboardingView()
                     .environmentObject(appState.accessibilityPermission)
             }
         }
         .frame(minWidth: 720, minHeight: 480)
-    }
-}
-
-private struct GeneralSettingsView: View {
-    @EnvironmentObject var launchAtLogin: LaunchAtLoginManager
-
-    var body: some View {
-        Form {
-            Toggle("Launch at Login", isOn: Binding(
-                get: { launchAtLogin.isEnabled },
-                set: { launchAtLogin.setEnabled($0) }
-            ))
-        }
-        .formStyle(.grouped)
-        .padding()
+        // Grouped forms draw text fields borderless by default, so they read as plain text.
+        .textFieldStyle(.roundedBorder)
     }
 }

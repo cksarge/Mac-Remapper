@@ -75,8 +75,56 @@ struct MappingEditorView: View {
                         set: { mapping.action = .macro(steps: $0) }
                     ))
                 }
+
+                Divider()
+
+                macroRunOptions
             }
         }
         .padding(.vertical, 6)
+    }
+
+    private var macroRunOptions: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("Pressing the trigger while it's running", selection: $mapping.macroOptions.retriggerBehavior) {
+                Text("Does nothing").tag(RetriggerBehavior.ignore)
+                Text("Restarts it").tag(RetriggerBehavior.restart)
+                Text("Runs another copy").tag(RetriggerBehavior.runAnotherCopy)
+                Text("Stops it").tag(RetriggerBehavior.stop)
+            }
+
+            HStack {
+                Text("Stop key")
+                Spacer()
+                KeyCaptureView(combo: $mapping.macroOptions.stopKey, placeholder: "None")
+                if mapping.macroOptions.stopKey != nil {
+                    Button {
+                        mapping.macroOptions.stopKey = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help("Remove stop key")
+                }
+            }
+
+            if let note = runOptionsNote {
+                Label(note, systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var runOptionsNote: String? {
+        if mapping.effectiveRetriggerBehavior != mapping.macroOptions.retriggerBehavior {
+            return "This macro repeats forever, so pressing its trigger again always stops it. Set a stop key to choose something else."
+        }
+        if let stopKey = mapping.macroOptions.stopKey, stopKey == mapping.trigger {
+            return "The stop key is the same as the trigger, so pressing it while the macro runs stops it."
+        }
+        return nil
     }
 }

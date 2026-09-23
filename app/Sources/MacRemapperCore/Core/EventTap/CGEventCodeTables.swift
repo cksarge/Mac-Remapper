@@ -55,4 +55,27 @@ public enum KeyCodeTable {
     public static func modifierMask(for keyCode: UInt16) -> CGEventFlags? {
         modifierMasks[keyCode]
     }
+
+    private static let arrowKeyCodes: Set<UInt16> = [123, 124, 125, 126]
+
+    /// Keys whose events macOS always stamps with the fn flag (arrows, F-keys, the
+    /// Home/End/Page/Forward Delete/Help block), whether or not fn is physically held.
+    private static let implicitFnKeyCodes: Set<UInt16> = arrowKeyCodes.union([
+        114, 115, 116, 117, 119, 121,
+        122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111,
+        105, 107, 113, 106, 64, 79, 80, 90
+    ])
+
+    public static func hasImplicitFn(_ keyCode: UInt16) -> Bool {
+        implicitFnKeyCodes.contains(keyCode)
+    }
+
+    /// Flags a genuine event for this key carries beyond its user-held modifiers,
+    /// so synthesized/remapped events look like the real thing to receiving apps.
+    static func implicitFlags(for keyCode: UInt16) -> CGEventFlags {
+        var flags: CGEventFlags = []
+        if implicitFnKeyCodes.contains(keyCode) { flags.insert(.maskSecondaryFn) }
+        if arrowKeyCodes.contains(keyCode) { flags.insert(.maskNumericPad) }
+        return flags
+    }
 }

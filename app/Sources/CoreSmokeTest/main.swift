@@ -40,9 +40,10 @@ do {
 }
 
 do {
-    let steps = [
-        MacroStep(combo: KeyCombo(keyCode: 21, modifiers: [.command, .shift]), delayAfterMs: 300),
-        MacroStep(combo: KeyCombo(keyCode: 8, modifiers: [.command]), delayAfterMs: 0)
+    let steps: [MacroStep] = [
+        .keystroke(KeyCombo(keyCode: 21, modifiers: [.command, .shift])),
+        .delay(milliseconds: 1500, unit: .seconds),
+        .keystroke(KeyCombo(keyCode: 8, modifiers: [.command]))
     ]
     let mapping = Mapping(trigger: KeyCombo(keyCode: 105, modifiers: []), action: .macro(steps: steps))
     let data = try JSONEncoder.macRemapper.encode(mapping)
@@ -64,6 +65,33 @@ do {
     check(document.profiles == decoded.profiles, "ProfileDocument round-trips through JSON")
 } catch {
     check(false, "ProfileDocument round-trip threw: \(error)")
+}
+
+check(KeyCombo(keyCode: 126, modifiers: [.function, .shift]).modifiers == [.shift], "Implicit fn is stripped from arrow keys")
+check(KeyCombo(keyCode: 13, modifiers: [.function]).modifiers == [.function], "Real fn is kept on ordinary keys")
+do {
+    let json = #"{"keyCode":126,"modifiers":16}"#.data(using: .utf8)!
+    let decoded = try JSONDecoder.macRemapper.decode(KeyCombo.self, from: json)
+    check(decoded == KeyCombo(keyCode: 126, modifiers: []), "Legacy implicit fn is repaired on decode")
+} catch {
+    check(false, "Legacy KeyCombo decode threw: \(error)")
+}
+
+do {
+    let json = #"{"type":"macro","steps":[{"id":"6B4CC637-EF8C-49D9-A279-B38EA0A8F9EF","combo":{"keyCode":8,"modifiers":1},"delayAfterMs":300}]}"#.data(using: .utf8)!
+    let decoded = try JSONDecoder.macRemapper.decode(MappingAction.self, from: json)
+    let expectedID = UUID(uuidString: "6B4CC637-EF8C-49D9-A279-B38EA0A8F9EF")!
+    let expected: [MacroStep] = [
+        MacroStep(id: UUID(), action: .delay(milliseconds: 300, unit: .milliseconds)),
+        MacroStep(id: expectedID, action: .keystroke(KeyCombo(keyCode: 8, modifiers: [.command])))
+    ]
+    if case .macro(let steps) = decoded, steps.count == 2 {
+        check(steps[0].action == expected[0].action && steps[1] == expected[1], "Legacy macro step expands into delay + keystroke")
+    } else {
+        check(false, "Legacy macro step expands into delay + keystroke")
+    }
+} catch {
+    check(false, "Legacy MacroStep decode threw: \(error)")
 }
 
 // MARK: - MappingEngine
@@ -98,7 +126,7 @@ do {
     let appProfile = Profile(
         name: "Game Profile",
         scope: .apps(bundleIdentifiers: ["com.example.game"]),
-        mappings: [Mapping(trigger: wKey, action: .macro(steps: [MacroStep(combo: f13, delayAfterMs: 0)]))]
+        mappings: [Mapping(trigger: wKey, action: .macro(steps: [.keystroke(f13)]))]
     )
     let engine = MappingEngine()
 
@@ -139,6 +167,59 @@ do {
     } else {
         check(false, "Disabled mapping is ignored")
     }
+}
+
+do {
+    let downArrow = KeyCombo(keyCode: 125, modifiers: [])
+    let first = Profile(name: "First", scope: .global, mappings: [Mapping(trigger: wKey, action: .remap(output: upArrow))])
+    let second = Profile(name: "Second", scope: .global, mappings: [Mapping(trigger: wKey, action: .remap(output: downArrow))])
+    let engine = MappingEngine()
+    engine.rebuild(profiles: [first, second], frontmostBundleID: nil)
+    if case .remap(let output) = engine.resolve(wKey) {
+        check(output == upArrow, "Higher profile wins between conflicting globals")
+    } else {
+        check(false, "Higher profile wins between conflicting globals")
+    }
+    check(MappingPrecedence.overridingProfile(of: second.mappings[0], in: second, among: [first, second])?.id == first.id,
+          "Overridden global mapping is reported")
+    let app = Profile(name: "Game", scope: .apps(bundleIdentifiers: ["com.example.game"]), mappings: [Mapping(trigger: wKey, action: .macro(steps: [.keystroke(f13)]))])
+    check(MappingPrecedence.overridingProfile(of: first.mappings[0], in: first, among: [app, first]) == nil,
+          "App-scoped over global is not reported as a conflict")
+}
+
+// MARK: - MacroRunner
+
+/// Records macro side effects instead of posting events; concurrent work runs inline.
+final class RecordingPerformer: MacroPerformer {
+    var events: [String] = []
+    var cancelAfter: Int?
+    private var token: MacroRunToken?
+    private func record(_ event: String) {
+        events.append(event)
+        if let cancelAfter, events.count >= cancelAfter { token?.cancel() }
+    }
+    func press(_ combo: KeyCombo) { record("key \(combo.keyCode)") }
+    func click(_ click: MouseClick) { record("click") }
+    func type(_ text: String, token: MacroRunToken) { self.token = token; record("type \(text)") }
+    func runShortcut(_ shortcut: ShortcutRun, token: MacroRunToken) { self.token = token; record("shortcut") }
+    func sleep(milliseconds: Int, token: MacroRunToken) { self.token = token; record("sleep \(milliseconds)") }
+    func runConcurrently(_ work: @escaping () -> Void) { work() }
+}
+
+do {
+    var twice = RepeatConfig()
+    twice.count = 2
+    let performer = RecordingPerformer()
+    MacroRunner.start([.keystroke(wKey), MacroStep(action: .repeatSteps(twice))], performer: performer)
+    check(performer.events == ["key 13", "sleep 10", "key 13", "sleep 10", "key 13"],
+          "Repeat re-runs the last step with the 10 ms safety pause")
+
+    var forever = RepeatConfig()
+    forever.isForever = true
+    let clicker = RecordingPerformer()
+    clicker.cancelAfter = 5
+    MacroRunner.start([MacroStep(action: .click(MouseClick())), MacroStep(action: .repeatSteps(forever))], performer: clicker)
+    check(clicker.events == ["click", "sleep 10", "click", "sleep 10", "click"], "Autoclicker repeats until stopped")
 }
 
 // MARK: - ProfileStore persistence

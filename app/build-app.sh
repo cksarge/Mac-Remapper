@@ -19,12 +19,18 @@ APP_NAME="MacRemapper"
 BUILD_DIR="build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 
+# Release builds are universal (Apple Silicon + Intel); debug builds stay native for speed.
+ARCH_FLAGS=()
+if [ "$CONFIG" = "release" ]; then
+    ARCH_FLAGS=(--arch arm64 --arch x86_64)
+fi
+
 echo "Building Swift package ($CONFIG)…"
-swift build -c "$CONFIG"
+swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --product "$APP_NAME"
 
-BIN_PATH=$(swift build -c "$CONFIG" --show-bin-path)
+BIN_PATH=$(swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --show-bin-path)
 
-echo "Assembling $APP_BUNDLE…"
+echo "Assembling ${APP_BUNDLE}…"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
@@ -41,7 +47,7 @@ if [ "$SIGN_IDENTITY" = "-" ]; then
     echo "Ad-hoc signing (set SIGN_IDENTITY for a real release build)…"
     codesign --force --deep --sign - "$APP_BUNDLE"
 else
-    echo "Signing with identity: $SIGN_IDENTITY…"
+    echo "Signing with identity: ${SIGN_IDENTITY}…"
     codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
 fi
 

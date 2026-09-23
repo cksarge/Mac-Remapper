@@ -1,161 +1,173 @@
 # Mac Remapper
 
-A native macOS menu bar app for remapping keys and building keyboard macros — globally or per app — plus the marketing/download website for it.
+A native macOS menu bar app for remapping keys and building keyboard and mouse macros, globally or per app. This repo also holds the marketing and download website.
+
+**Website:** [cksarge.github.io/Mac-Remapper](https://cksarge.github.io/Mac-Remapper) · **Download:** [latest release](https://github.com/cksarge/Mac-Remapper/releases/latest)
 
 ```
-Mac Remapper/
+Mac-Remapper/
 ├── app/    Swift Package containing the macOS app
 └── docs/   Static website, served by GitHub Pages from /docs
 ```
 
-## Path to 1.0.0
+## Features
 
-Everything left between where this stands now (built and logic-tested on a machine with only the Xcode Command Line Tools, so the SwiftUI target has never actually been compiled or run) and a tested, signed, publicly downloadable 1.0.0 release. Do this on a machine with full Xcode installed.
+- **Simple remaps**: any key or key combo to any other, including modifier-to-modifier (e.g. Right ⌘ → ⌃).
+- **Macros**: one trigger key runs a sequence of steps:
+  - **Keystroke**: presses a key combo.
+  - **Delay**: waits, in ms or s.
+  - **Mouse Click**: left, middle or right; single or double; at the pointer or at x,y coordinates picked on screen.
+  - **Type Text**: types any Unicode text.
+  - **Marker**: a named position that repeats can refer to.
+  - **Repeat**: re-runs the last N steps or a marker-to-marker block, N more times or forever, before or alongside the following steps.
+  - **Run Shortcut**: runs a Shortcuts app shortcut, optionally waiting for it to finish.
+- **Run control**: per macro, pressing the trigger while it runs can ignore / restart / run another copy / stop. An optional separate stop key and a **Stop Running Macros** menu item are also available.
+- **Profiles**: **Global** or scoped to specific apps. Profiles can be dragged into priority order, and overridden mappings show a warning.
+- **Menu bar app**: a native menu with live status and an on/off switch, plus Launch at Login and import/export of profiles as JSON.
 
-### 1. Set up on a machine with full Xcode
-- [ ] Install Xcode from the App Store, launch it once so it finishes installing components.
-- [ ] `git clone https://github.com/cksarge/Mac-Remapper.git` (or `git pull` if already cloned).
-- [ ] Confirm `xcode-select -p` prints a path under `/Applications/Xcode.app`, not `CommandLineTools`.
-- [ ] `cd app && swift build` — this should now build **both** `MacRemapperCore` and `MacRemapper` (only `MacRemapperCore` could build before).
-- [ ] `swift test` — runs the `swift-testing` suite in `Tests/MacRemapperCoreTests` (equivalent to `CoreSmokeTest`, but the real test runner).
+Global key remapping needs a system-wide `CGEventTap`, which the App Store sandbox doesn't allow. So the app ships as a direct-download `.dmg`, not through the Mac App Store.
 
-### 2. Get it compiling
-The `MacRemapper` SwiftUI target has never been fed through a real Swift compiler. Treat the first build on Xcode as step one, not a formality — fix whatever compile errors/warnings Xcode surfaces before doing anything else. In target settings, also remove the **App Sandbox** capability if Xcode added it by default (a sandboxed app cannot create a system-wide `CGEventTap`), and confirm **Signing & Capabilities** is set to "Sign to Run Locally" for now.
+## Getting started
 
-### 3. Manually test the running app
-Run via Xcode (⌘R) or `./build-app.sh && open build/MacRemapper.app`, then work through:
-- [ ] **Onboarding**: with no Accessibility access granted, the app shows the onboarding screen; granting access in System Settings updates the app automatically, no restart.
-- [ ] **Simple remap**: e.g. Global profile, `W` → `Up Arrow`; confirm in TextEdit.
-- [ ] **Macro**: e.g. an unused key (F13) → Cmd+Shift+4, delay, Cmd+C; confirm both steps fire with the delay honored.
-- [ ] **App-scoped precedence**: an app-scoped profile's mapping overrides a conflicting Global mapping only while that app is frontmost.
-- [ ] **Modifier remap** (e.g. Caps Lock → Control): this path (`AppState.handleModifierKey`, `flagsChanged` field-swapping) was written but never verified on real hardware — test carefully, including pressing/releasing multiple modifiers together.
-- [ ] **Menu bar UI**: enable/disable toggle, active-profile display, Settings window opens/closes without issue, Quit works cleanly.
-- [ ] **Launch at Login** toggle actually registers (check System Settings → General → Login Items).
-- [ ] **Import/export** round-trips a profile JSON file without ID collisions.
-- [ ] Fix whatever breaks. This is the first real test pass the UI has ever gotten — expect to find and fix genuine bugs here.
+### Requirements
 
-### 4. Add a real app icon
-No icon exists yet — `Info.plist` references `CFBundleIconFile: AppIcon`, but with no `.icns` file present the app currently falls back to macOS's generic app icon. Design a 1024×1024 icon, generate the required sizes (Xcode's asset catalog editor, or `iconutil`/an online generator), and add it as `app/Resources/AppIcon.icns` — `build-app.sh` already copies it into the bundle if present.
+- macOS 13 Ventura or later. Development has been done on the latest macOS.
+- **Full Xcode** (from the App Store), not just the Command Line Tools. SwiftUI's property wrappers and the `swift-testing` framework rely on compiler plugins that only ship inside Xcode.app. Check with `xcode-select -p`, which should print a path inside `/Applications/Xcode.app`.
 
-### 5. Enroll in the Apple Developer Program
-[developer.apple.com/programs](https://developer.apple.com/programs) — $99/year. Required for a "Developer ID Application" signing certificate and for notarization, which together eliminate the Gatekeeper warning for everyone downloading the app.
+### Build, test, run
 
-### 6. Code sign with your real identity
-Once the certificate is in your Keychain (Xcode → Settings → Accounts, or downloaded from the developer portal):
 ```sh
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./build-app.sh release
+git clone https://github.com/cksarge/Mac-Remapper.git
+cd Mac-Remapper/app
+
+swift build                # builds everything
+swift test                 # swift-testing suite (Tests/MacRemapperCoreTests)
+./rebuild-and-run.sh       # builds MacRemapper.app and launches it
 ```
-(`build-app.sh` defaults to ad-hoc signing — fine for local testing only — and switches to your real identity plus the hardened runtime when `SIGN_IDENTITY` is set.)
 
-### 7. Notarize
-```sh
-./make-dmg.sh   # packages build/MacRemapper.app into build/MacRemapper.dmg
-xcrun notarytool submit build/MacRemapper.dmg --keychain-profile "AC_NOTARY" --wait
-xcrun stapler staple build/MacRemapper.dmg
-spctl -a -vvv -t install build/MacRemapper.dmg   # should print "accepted" / "source=Notarized Developer ID"
-```
-(`xcrun notarytool store-credentials AC_NOTARY` sets up the keychain profile once, using an app-specific password from appleid.apple.com.)
+`app/` is a Swift Package, not an `.xcodeproj`. To work in Xcode, open `app/Package.swift` and run the `MacRemapper` scheme.
 
-### 8. Cut the 1.0.0 release
-- [ ] Bump `CFBundleShortVersionString` in `app/Resources/Info.plist` to `1.0.0`.
-- [ ] `git tag v1.0.0 && git push origin v1.0.0`.
-- [ ] On GitHub: Releases → Draft a new release → tag `v1.0.0` → attach `build/MacRemapper.dmg` **named exactly `MacRemapper.dmg`** (the download page's link depends on that exact filename) → publish.
+On first launch the app shows an onboarding screen asking for **Accessibility** access, which the event tap requires. Grant it in System Settings → Privacy & Security → Accessibility. The app notices within a second, no restart needed. Then use the menu bar icon → **Open Settings…** to create a profile.
 
-### 9. Publish the website
-- [ ] Push `main` to GitHub (see "committing & pushing" note below — already done for you as of this session).
-- [ ] Repo Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, folder: **/docs**.
-- [ ] Confirm the live download button resolves to the release asset.
+### The Accessibility grant resets on every rebuild
 
-### 10. Final sanity pass
-- [ ] On a Mac that has never run the app before (a spare machine, a fresh user account, or a VM), download the published `.dmg` and confirm it opens with a normal double-click — no right-click-Open workaround needed, since it's notarized now.
-- [ ] Re-run the full manual test checklist from step 3 against this actual signed/notarized build, not just a debug build.
+Builds are **ad-hoc signed**, and macOS ties the Accessibility grant to the exact binary. After a rebuild, the old grant silently stops working, even though the System Settings toggle still looks on. `rebuild-and-run.sh` handles this for you: it quits the app, rebuilds, runs `tccutil reset Accessibility com.macremapper.app`, and relaunches. You then grant access again. Signing with a stable Developer ID certificate would make the grant survive rebuilds and updates.
 
-## The app
+### Tests
 
-- **Native Swift/SwiftUI**, menu bar only (no Dock icon).
-- Global, system-wide key remapping via a `CGEventTap` (the same mechanism apps like Karabiner-Elements and Rectangle use), which requires the user to grant **Accessibility** access.
-- Two kinds of mappings per profile: a **simple remap** (one key/combo → another) and a **macro** (one key → an ordered sequence of keystrokes, each with its own delay).
-- Profiles are either **Global** (always active) or scoped to a list of specific apps by bundle identifier; app-scoped profiles take precedence over Global for the same trigger key while that app is frontmost.
-- Because global key remapping is incompatible with the App Store sandbox, this app is **not** distributed through the Mac App Store — it's a direct-download `.dmg` (see [docs/download.html](docs/download.html)).
+- `swift test`: the main suite. It covers codable round-trips and legacy file formats, mapping precedence and conflict detection, profile persistence, and the macro runner (step order, repeats, markers, the 10 ms safety pause, cancellation).
+- `swift run CoreSmokeTest`: a dependency-free check runner with the same core coverage, which also works with only the Command Line Tools installed. Keep the two in sync when adding coverage.
 
-### Project structure (`app/`)
+The macro runner is tested through a `MacroPerformer` protocol. Tests substitute a recording performer, so nothing is actually typed or clicked.
 
-`app/` is a **Swift Package**, not an `.xcodeproj` — see [Building without full Xcode](#building-without-full-xcode) below for why, and what changes once you have Xcode installed.
+## How it works
+
+### A key press, end to end
+
+1. **`EventTapManager`** owns a session-level `CGEventTap` for key down/up and modifier changes. Its callback runs on the main run loop.
+2. **`AppState.handle(event:type:)`** decides what happens:
+   - Events the app posted itself (tagged with a marker in `eventSourceUserData`) pass straight through, so macro output never triggers mappings.
+   - A key-down matching a running macro's **stop key** cancels that macro.
+   - Otherwise it asks the engine.
+3. **`MappingEngine.resolve`** is a single dictionary lookup in a table rebuilt whenever profiles or the frontmost app change. It returns one of three results:
+   - **Passthrough:** no mapping matches, so the event is left untouched.
+   - **Remap:** the event's key code and flags are rewritten in place.
+   - **Macro:** the event is swallowed, along with its key-up, and the macro starts. Key auto-repeats are ignored, so holding a trigger key doesn't start the macro over and over.
+
+**Precedence:** app-scoped profiles beat Global ones. Within the same level, the profile **higher in the list** wins, and within a profile, the earlier mapping wins. `MappingPrecedence` applies the same rule to flag overridden mappings in the UI.
+
+### Macros
+
+- **`MacroRunner`** interprets the steps on a background thread:
+  - Markers are no-ops.
+  - A block runs normally the first time it's reached; a Repeat step then runs it N *more* times (or until cancelled).
+  - Repeats set to continue alongside the following steps run on their own thread, sharing one `MacroRunToken`. Cancelling the token stops everything that run spawned.
+  - If a repeated block contains no delay above 0, iterations are spaced 10 ms apart.
+- **`SystemMacroPerformer`** does the real work:
+  - **Keys:** posts `CGEvent`s with explicit flags, so modifiers still held from the trigger don't leak into the output.
+  - **Text:** typed through `keyboardSetUnicodeString`.
+  - **Clicks:** mouse events, with the optional cursor return.
+  - **Shortcuts:** runs `/usr/bin/shortcuts run <name>`. No entitlement or developer account needed.
+- **The forever-repeat safeguard:** a macro that repeats forever with no stop key always stops when its trigger is pressed again (`Mapping.effectiveRetriggerBehavior`), so it can never be left unstoppable.
+
+### Persistence
+
+Profiles are saved as JSON at `~/Library/Application Support/MacRemapper/profiles.json`. Saves happen 0.5 s after each change (debounced) and again on quit. Decoders accept older formats:
+- **Combos:** combos saved with macOS's implicit fn flag are repaired.
+- **Old macro steps:** steps that had a delay attached expand into a Delay step followed by a Keystroke step.
+- **Missing settings:** mappings without `macroOptions` load with the defaults.
+
+Keep that backward compatibility when changing the models, since users' existing files must keep loading.
+
+### UI
+
+- **The menu bar item** is built in AppKit (`StatusItemController`), not SwiftUI's `MenuBarExtra`. That allows a custom SwiftUI header (`MenuHeaderView`) and two-line profile rows inside a native `NSMenu`.
+- **The Settings window** is opened from AppKit by `SettingsWindowController`. While it's open, the app temporarily becomes a regular app (Dock icon, ⌘Tab) so the window can't get lost behind other apps.
+- **The SwiftUI `App` scene** is a never-inserted `MenuBarExtra`. SwiftUI requires at least one scene, and an empty `Settings` scene would pop up as a blank window when the app is reactivated.
+
+## Project structure
 
 ```
 app/
 ├── Package.swift
 ├── Sources/
-│   ├── MacRemapperCore/     Models, event tap, mapping engine, persistence — no SwiftUI dependency
-│   └── MacRemapper/         SwiftUI menu bar UI + settings window (the actual app)
-├── Tests/MacRemapperCoreTests/   swift-testing suite for MacRemapperCore
-├── Sources/CoreSmokeTest/   Plain-Swift check runner for MacRemapperCore (see below)
-├── Resources/Info.plist    App bundle Info.plist (LSUIElement, Accessibility usage string)
-├── build-app.sh            Assembles MacRemapper.app from a `swift build` output (ad-hoc or real signing)
-└── make-dmg.sh             Packages build/MacRemapper.app into a distributable build/MacRemapper.dmg
+│   ├── MacRemapperCore/            Logic, with no SwiftUI dependency
+│   │   ├── AppState/               AppState: wires the tap, engine, macro runs and permission together
+│   │   └── Core/
+│   │       ├── EventTap/           CGEventTap wrapper, key code names and modifier masks
+│   │       ├── Engine/             MappingEngine + MappingPrecedence, MacroRunner, SystemMacroPerformer
+│   │       ├── Models/             KeyCombo, Mapping (+ MacroOptions), MacroStep, Profile
+│   │       ├── Persistence/        ProfileStore (JSON), ImportExport
+│   │       ├── AppMonitor/         Frontmost-app tracking for app-scoped profiles
+│   │       ├── Permissions/        Accessibility trust and polling
+│   │       └── LaunchAtLogin/      SMAppService wrapper
+│   ├── MacRemapper/                The app (SwiftUI and AppKit)
+│   │   ├── MacRemapperApp.swift    Entry point and AppDelegate
+│   │   ├── MenuBar/                Status item and menu, menu header view
+│   │   ├── Settings/               Settings window, onboarding, profile/mapping/macro editors, key recorder
+│   │   └── Shared/                 App name/icon lookup, on-screen point picker, Shortcuts list
+│   └── CoreSmokeTest/              Dependency-free check runner
+├── Tests/MacRemapperCoreTests/     swift-testing suite
+├── Resources/                      Info.plist, AppIcon.icns (+ 1024 px preview)
+├── build-app.sh                    Builds MacRemapper.app (release builds are universal: arm64 + x86_64)
+├── make-dmg.sh                     Packages build/MacRemapper.app into build/MacRemapper.dmg
+├── rebuild-and-run.sh              Dev loop: quit, rebuild, reset the Accessibility grant, relaunch
+└── make-icon.swift                 Generates the app icon; edit and run `swift make-icon.swift`
 ```
 
-Key files:
-- `Sources/MacRemapperCore/Core/EventTap/EventTapManager.swift` — the `CGEventTap` wrapper
-- `Sources/MacRemapperCore/Core/Engine/MappingEngine.swift` — resolves an incoming key combo against active profiles
-- `Sources/MacRemapperCore/Core/Engine/EventSynthesizer.swift` — posts remap/macro output events
-- `Sources/MacRemapperCore/Core/Models/Profile.swift` — `Profile` / `ProfileScope`
-- `Sources/MacRemapperCore/Core/Persistence/ProfileStore.swift` — JSON persistence
-- `Sources/MacRemapper/Settings/KeyCaptureView.swift` — "press a key to record it" UI control
+## Releasing
 
-### Building without full Xcode
+1. Bump `CFBundleShortVersionString` (and `CFBundleVersion`) in `app/Resources/Info.plist`, and the version shown on `docs/download.html`.
+2. Build the universal release app and the disk image:
+   ```sh
+   cd app
+   ./build-app.sh release
+   ./make-dmg.sh              # → build/MacRemapper.dmg
+   ```
+3. Commit, tag and push: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+4. On GitHub, open **Releases → Draft a new release**, choose the tag, and attach `build/MacRemapper.dmg`. Keep the file named exactly **`MacRemapper.dmg`**: the website's download button uses GitHub's stable `releases/latest/download/MacRemapper.dmg` URL, so it always serves the newest release without editing the site.
 
-This project was built in an environment with only the Xcode **Command Line Tools** installed, not full Xcode.app. That matters because SwiftUI's `@State`/`@Binding` (and XCTest, and the newer `swift-testing` framework) rely on compiler macro plugins that only ship inside Xcode.app. Concretely:
+**Signing:** releases are currently ad-hoc signed, not notarized, so users approve the app once via System Settings → Privacy & Security → **Open Anyway**. The download page explains this. To remove that step, enroll in the Apple Developer Program. Then build with `SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" ./build-app.sh release` (which also enables the hardened runtime), and notarize the `.dmg` with `xcrun notarytool submit … --wait` followed by `xcrun stapler staple`.
 
-- **`MacRemapperCore`** (models, event tap, mapping engine, persistence) has **no SwiftUI dependency**, so it builds and its tests run with just the Command Line Tools:
-  ```sh
-  cd app
-  swift build --target MacRemapperCore
-  swift run CoreSmokeTest      # plain-Swift check runner — no XCTest/swift-testing needed
-  ```
-  `Tests/MacRemapperCoreTests` holds the same coverage written against `swift-testing` (`import Testing`), for when you have full Xcode — run it with `swift test` at that point. Keep both in sync if you add coverage.
-- **`MacRemapper`** (the actual SwiftUI app target) **requires full Xcode.app** to compile. Install Xcode from the App Store, then either:
-  - Open `app/Package.swift` directly in Xcode (File → Open) and run the `MacRemapper` scheme, or
-  - Run `./app/build-app.sh` from a shell where `xcode-select` points at a full Xcode install, to assemble `app/build/MacRemapper.app` (ad-hoc signed, ready to `open`).
+## Website (`docs/`)
 
-Once Xcode is installed, `swift build`/`swift test` at the package root will build and test everything, including the UI target.
+Plain HTML/CSS/JS with no build step, served by GitHub Pages from `main` → `/docs` (Settings → Pages → Deploy from a branch).
 
-### First run
+- `index.html` is the homepage and feature overview. `download.html` has the download button and install steps.
+- `css/styles.css` and `js/main.js` hold the styles and scripts. `assets/icons/` holds the favicon (SVG), the app icon, and the Apple touch icon.
 
-1. Build and run `MacRemapper` (via Xcode or `build-app.sh` + `open`).
-2. On first launch, the app can't create its event tap without Accessibility access — it'll show an onboarding screen. Click through to System Settings → Privacy & Security → Accessibility and enable **Mac Remapper**; the app detects the grant automatically, no restart needed.
-3. Click the menu bar icon → **Open Settings…** to create your first profile and mapping.
-4. See [docs/download.html](docs/download.html) for the end-user install flow (relevant once you're testing a built `.dmg`).
-
-### Known limitations / not yet implemented
-
-- The app is **unsigned** and has **no app icon** yet — see [Path to 1.0.0](#path-to-100) above for both.
-- Modifier-key-to-modifier-key remaps (e.g. Caps Lock → Control) are implemented via `flagsChanged` event field-swapping (`AppState.handleModifierKey`) — this is the standard approach, but multi-modifier-at-once edge cases are worth verifying on real hardware since this environment couldn't test physical key input.
-
-## The website (`docs/`)
-
-Plain HTML/CSS/JS, no build step, served directly by GitHub Pages from the `/docs` folder.
-
-- `docs/index.html` — homepage/features
-- `docs/download.html` — download page, links to the latest GitHub Release's `.dmg` via GitHub's stable `.../releases/latest/download/<asset-name>` URL
-- `docs/css/styles.css`, `docs/js/main.js`
-
-The GitHub links in `docs/index.html` and `docs/download.html` point at [github.com/cksarge/Mac-Remapper](https://github.com/cksarge/Mac-Remapper).
-
-### Local preview
+To preview locally:
 
 ```sh
-cd docs
-python3 -m http.server 8000
-# open http://localhost:8000
+cd docs && python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-### Publishing
+## Known limitations
 
-1. Push this repo to GitHub.
-2. Repo Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, folder: **/docs**.
-3. Cut a GitHub Release and attach the built `.dmg` as `MacRemapper.dmg` (matching the filename the download page links to) so the "latest" URL resolves without editing the site on every release.
+- **Caps Lock can't be remapped.** macOS toggles it inside the keyboard driver before any event tap sees it, so the key recorder rejects it. Users can remap it natively in System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys.
+- **Some games won't see remapped keys.** Remapping happens at the `CGEvent` level. Games that read the keyboard directly through IOKit/HID bypass it.
+- **Macro clicks use global display coordinates** (origin at the top-left of the main display), so a saved x,y position may land elsewhere if the display arrangement changes.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
