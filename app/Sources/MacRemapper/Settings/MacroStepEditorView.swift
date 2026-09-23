@@ -103,6 +103,22 @@ struct MacroStepEditorView: View {
                 },
                 set: { step.wrappedValue.action = .runShortcut($0) }
             ))
+        case .scroll(let scroll):
+            ScrollStepView(scroll: Binding(
+                get: {
+                    if case .scroll(let live) = step.wrappedValue.action { return live }
+                    return scroll
+                },
+                set: { step.wrappedValue.action = .scroll($0) }
+            ))
+        case .openURL(let link):
+            OpenURLStepView(link: Binding(
+                get: {
+                    if case .openURL(let live) = step.wrappedValue.action { return live }
+                    return link
+                },
+                set: { step.wrappedValue.action = .openURL($0) }
+            ))
         }
     }
 
@@ -156,7 +172,7 @@ struct MacroStepEditorView: View {
 
 /// The kinds of step the editor can add, with their labels and starting values.
 private enum StepKind: CaseIterable, Identifiable {
-    case keystroke, delay, click, typeText, marker, repeatSteps, runShortcut
+    case keystroke, delay, click, scroll, typeText, openURL, marker, repeatSteps, runShortcut
 
     init(_ action: MacroStep.Action) {
         switch action {
@@ -167,6 +183,8 @@ private enum StepKind: CaseIterable, Identifiable {
         case .marker: self = .marker
         case .repeatSteps: self = .repeatSteps
         case .runShortcut: self = .runShortcut
+        case .scroll: self = .scroll
+        case .openURL: self = .openURL
         }
     }
 
@@ -182,6 +200,8 @@ private enum StepKind: CaseIterable, Identifiable {
         case .marker: return "Marker"
         case .repeatSteps: return "Repeat"
         case .runShortcut: return "Shortcut"
+        case .scroll: return "Scroll"
+        case .openURL: return "Open"
         }
     }
 
@@ -194,6 +214,8 @@ private enum StepKind: CaseIterable, Identifiable {
         case .marker: return "Marker"
         case .repeatSteps: return "Repeat"
         case .runShortcut: return "Run Shortcut"
+        case .scroll: return "Scroll"
+        case .openURL: return "Open Webpage"
         }
     }
 
@@ -206,6 +228,8 @@ private enum StepKind: CaseIterable, Identifiable {
         case .marker: return "flag"
         case .repeatSteps: return "repeat"
         case .runShortcut: return "square.stack.3d.up"
+        case .scroll: return "arrow.up.and.down"
+        case .openURL: return "safari"
         }
     }
 
@@ -218,6 +242,8 @@ private enum StepKind: CaseIterable, Identifiable {
         case .marker: return .marker("")
         case .repeatSteps: return .repeatSteps(RepeatConfig())
         case .runShortcut: return .runShortcut(ShortcutRun())
+        case .scroll: return .scroll(ScrollAction())
+        case .openURL: return .openURL("")
         }
     }
 }
@@ -479,5 +505,51 @@ private struct ShortcutStepView: View {
             Toggle("Wait until it finishes", isOn: $shortcut.waitsUntilFinished)
         }
         .onAppear { library.loadIfNeeded() }
+    }
+}
+
+private struct ScrollStepView: View {
+    @Binding var scroll: ScrollAction
+
+    private static let range = 1...10_000
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Picker("Direction", selection: $scroll.direction) {
+                Text("Up").tag(ScrollDirection.up)
+                Text("Down").tag(ScrollDirection.down)
+            }
+            .labelsHidden()
+            .fixedSize()
+            Text("by")
+            TextField("Pixels", value: Binding(
+                get: { scroll.pixels },
+                set: { scroll.pixels = min(max($0, Self.range.lowerBound), Self.range.upperBound) }
+            ), format: .number)
+            .labelsHidden()
+            .multilineTextAlignment(.trailing)
+            .monospacedDigit()
+            .frame(width: 64)
+            Stepper("Pixels", value: $scroll.pixels, in: Self.range, step: 50)
+                .labelsHidden()
+            Text("px")
+        }
+    }
+}
+
+private struct OpenURLStepView: View {
+    @Binding var link: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("Link", text: $link, prompt: Text("https://example.com"))
+                .labelsHidden()
+                .frame(minWidth: 240)
+            if !link.trimmingCharacters(in: .whitespaces).isEmpty && MacroStep.normalizedURL(from: link) == nil {
+                Label("This doesn't look like a valid link.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
     }
 }

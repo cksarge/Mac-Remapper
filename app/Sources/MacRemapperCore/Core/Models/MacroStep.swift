@@ -49,6 +49,18 @@ public struct RepeatConfig: Codable, Hashable {
     public init() {}
 }
 
+public enum ScrollDirection: String, Codable, Hashable, CaseIterable {
+    case up, down
+}
+
+/// Scrolls whatever is under the pointer by a number of pixels.
+public struct ScrollAction: Codable, Hashable {
+    public var direction: ScrollDirection = .down
+    public var pixels: Int = 100
+
+    public init() {}
+}
+
 /// Runs a shortcut from the Shortcuts app, via the built-in `shortcuts` command.
 public struct ShortcutRun: Codable, Hashable {
     public var name: String = ""
@@ -68,6 +80,9 @@ public struct MacroStep: Codable, Identifiable, Hashable {
         case marker(String)
         case repeatSteps(RepeatConfig)
         case runShortcut(ShortcutRun)
+        case scroll(ScrollAction)
+        /// Opens a link in the default browser (or whichever app handles the link).
+        case openURL(String)
     }
 
     public var id: UUID
@@ -87,11 +102,11 @@ public struct MacroStep: Codable, Identifiable, Hashable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, combo, delayMs, delayUnit, click, text, marker, repeatConfig, shortcut
+        case id, type, combo, delayMs, delayUnit, click, text, marker, repeatConfig, shortcut, scroll, url
     }
 
     private enum StepType: String, Codable {
-        case keystroke, delay, click, typeText, marker, repeatSteps, runShortcut
+        case keystroke, delay, click, typeText, marker, repeatSteps, runShortcut, scroll, openURL
     }
 
     public init(from decoder: Decoder) throws {
@@ -115,6 +130,10 @@ public struct MacroStep: Codable, Identifiable, Hashable {
             action = .repeatSteps(try container.decode(RepeatConfig.self, forKey: .repeatConfig))
         case .runShortcut:
             action = .runShortcut(try container.decode(ShortcutRun.self, forKey: .shortcut))
+        case .scroll:
+            action = .scroll(try container.decode(ScrollAction.self, forKey: .scroll))
+        case .openURL:
+            action = .openURL(try container.decode(String.self, forKey: .url))
         }
     }
 
@@ -144,6 +163,12 @@ public struct MacroStep: Codable, Identifiable, Hashable {
         case .runShortcut(let shortcut):
             try container.encode(StepType.runShortcut, forKey: .type)
             try container.encode(shortcut, forKey: .shortcut)
+        case .scroll(let scroll):
+            try container.encode(StepType.scroll, forKey: .type)
+            try container.encode(scroll, forKey: .scroll)
+        case .openURL(let url):
+            try container.encode(StepType.openURL, forKey: .type)
+            try container.encode(url, forKey: .url)
         }
     }
 }
@@ -177,5 +202,20 @@ struct StoredMacroStep: Decodable {
         }
         expanded.append(MacroStep(id: try container.decode(UUID.self, forKey: .id), action: .keystroke(combo)))
         steps = expanded
+    }
+}
+
+extension MacroStep {
+    /// Turns what the user typed into an openable URL: trims it and adds `https://` when no
+    /// scheme is given, so "example.com" works. Returns nil if it still isn't a usable URL.
+    public static func normalizedURL(from text: String) -> URL? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains(" ") else { return nil }
+        let withScheme = trimmed.contains("://") || trimmed.lowercased().hasPrefix("mailto:") ? trimmed : "https://" + trimmed
+        guard let url = URL(string: withScheme), let scheme = url.scheme, !scheme.isEmpty else { return nil }
+        if scheme == "http" || scheme == "https" {
+            guard let host = url.host, host.contains(".") || host == "localhost" else { return nil }
+        }
+        return url
     }
 }

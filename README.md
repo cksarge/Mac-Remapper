@@ -17,7 +17,9 @@ Mac-Remapper/
   - **Keystroke**: presses a key combo.
   - **Delay**: waits, in ms or s.
   - **Mouse Click**: left, middle or right; single or double; at the pointer or at x,y coordinates picked on screen.
+  - **Scroll**: scrolls up or down by a number of pixels.
   - **Type Text**: types any Unicode text.
+  - **Open Webpage**: opens a link in the default browser (`https://` is added if missing).
   - **Marker**: a named position that repeats can refer to.
   - **Repeat**: re-runs the last N steps or a marker-to-marker block, N more times or forever, before or alongside the following steps.
   - **Run Shortcut**: runs a Shortcuts app shortcut, optionally waiting for it to finish.
@@ -137,7 +139,7 @@ app/
 
 ## Releasing
 
-1. Bump `CFBundleShortVersionString` (and `CFBundleVersion`) in `app/Resources/Info.plist`, and the version shown on `docs/download.html`.
+1. Bump `CFBundleShortVersionString` (and `CFBundleVersion`) in `app/Resources/Info.plist`. The download page reads the latest release's version from the GitHub API, so it doesn't need editing. The number in its `data-latest-version` element is only a fallback.
 2. Build the universal release app and the disk image:
    ```sh
    cd app
@@ -154,7 +156,7 @@ app/
 Plain HTML/CSS/JS with no build step, served by GitHub Pages from `main` → `/docs` (Settings → Pages → Deploy from a branch).
 
 - `index.html` is the homepage and feature overview. `download.html` has the download button and install steps.
-- `css/styles.css` and `js/main.js` hold the styles and scripts. `assets/icons/` holds the favicon (SVG), the app icon, and the Apple touch icon.
+- `css/styles.css` and `js/main.js` hold the styles and scripts. When either changes, bump the `?v=` on its `<link>`/`<script>` tag in both pages, because GitHub Pages lets browsers cache them for 10 minutes. `assets/icons/` holds the favicon (SVG), the app icon, and the Apple touch icon.
 
 To preview locally:
 

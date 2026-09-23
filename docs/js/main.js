@@ -15,3 +15,24 @@ if (toggle && links) {
     });
   });
 }
+
+// Show the newest release's version (e.g. "v1.2.0" → "1.2.0") wherever a page marks it, so the
+// site never needs editing for a release. The number written in the HTML is the fallback if
+// GitHub can't be reached or its rate limit is hit.
+const versionSlots = document.querySelectorAll("[data-latest-version]");
+
+if (versionSlots.length > 0) {
+  fetch("https://api.github.com/repos/cksarge/Mac-Remapper/releases/latest", {
+    headers: { Accept: "application/vnd.github+json" },
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((release) => {
+      const version = release?.tag_name?.replace(/^v/, "");
+      if (version) {
+        versionSlots.forEach((slot) => {
+          slot.textContent = version;
+        });
+      }
+    })
+    .catch(() => {});
+}

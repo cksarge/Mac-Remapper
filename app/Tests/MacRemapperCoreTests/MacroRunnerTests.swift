@@ -19,6 +19,8 @@ private final class RecordingPerformer: MacroPerformer {
     func click(_ click: MouseClick) { record("click \(click.button.rawValue) x\(click.clickCount)", currentToken) }
     func type(_ text: String, token: MacroRunToken) { currentToken = token; record("type \(text)", token) }
     func runShortcut(_ shortcut: ShortcutRun, token: MacroRunToken) { currentToken = token; record("shortcut \(shortcut.name)", token) }
+    func scroll(_ scroll: ScrollAction) { record("scroll \(scroll.direction.rawValue) \(scroll.pixels)", currentToken) }
+    func openURL(_ url: URL) { record("open \(url.absoluteString)", currentToken) }
     func sleep(milliseconds: Int, token: MacroRunToken) { currentToken = token; record("sleep \(milliseconds)", token) }
     func runConcurrently(_ work: @escaping () -> Void) { work() }
 
@@ -142,12 +144,36 @@ struct MacroRunnerTests {
             MacroStep(action: .typeText("Hello 👋")),
             MacroStep(action: .marker("start")),
             repeatStep { $0.isForever = true; $0.scope = .betweenMarkers; $0.fromMarker = "start"; $0.toMarker = "end" },
-            MacroStep(action: .runShortcut(shortcut))
+            MacroStep(action: .runShortcut(shortcut)),
+            MacroStep(action: .scroll({ var scroll = ScrollAction(); scroll.direction = .up; scroll.pixels = 350; return scroll }())),
+            MacroStep(action: .openURL("example.com"))
         ]
         let mapping = Mapping(trigger: a, action: .macro(steps: steps),
                               macroOptions: MacroOptions(retriggerBehavior: .restart, stopKey: KeyCombo(keyCode: 53)))
         let data = try JSONEncoder.macRemapper.encode(mapping)
         #expect(try JSONDecoder.macRemapper.decode(Mapping.self, from: data) == mapping)
+    }
+
+    @Test func scrollAndOpenURLStepsRun() {
+        var scroll = ScrollAction()
+        scroll.direction = .up
+        scroll.pixels = 240
+        let performer = RecordingPerformer()
+        performer.run([
+            MacroStep(action: .scroll(scroll)),
+            MacroStep(action: .openURL("example.com/page")),
+            MacroStep(action: .openURL("not a link"))  // invalid: skipped, not opened
+        ])
+        #expect(performer.events == ["scroll up 240", "open https://example.com/page"])
+    }
+
+    @Test func typedLinksAreNormalized() {
+        #expect(MacroStep.normalizedURL(from: "  apple.com ")?.absoluteString == "https://apple.com")
+        #expect(MacroStep.normalizedURL(from: "http://localhost:8000")?.absoluteString == "http://localhost:8000")
+        #expect(MacroStep.normalizedURL(from: "mailto:hi@example.com")?.scheme == "mailto")
+        #expect(MacroStep.normalizedURL(from: "") == nil)
+        #expect(MacroStep.normalizedURL(from: "hello world") == nil)
+        #expect(MacroStep.normalizedURL(from: "nodot") == nil)
     }
 
     @Test func mappingWithoutMacroOptionsDecodesWithDefaults() throws {

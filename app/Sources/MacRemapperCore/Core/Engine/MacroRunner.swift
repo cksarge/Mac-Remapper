@@ -7,6 +7,8 @@ public protocol MacroPerformer: AnyObject {
     func click(_ click: MouseClick)
     func type(_ text: String, token: MacroRunToken)
     func runShortcut(_ shortcut: ShortcutRun, token: MacroRunToken)
+    func scroll(_ scroll: ScrollAction)
+    func openURL(_ url: URL)
     /// Waits, returning early if the token is cancelled.
     func sleep(milliseconds: Int, token: MacroRunToken)
     /// Runs work off the caller's thread (a macro run, or a repeat that continues in the background).
@@ -155,6 +157,10 @@ public enum MacroRunner {
                     break
                 case .runShortcut(let shortcut):
                     performer.runShortcut(shortcut, token: token)
+                case .scroll(let scroll):
+                    if scroll.pixels > 0 { performer.scroll(scroll) }
+                case .openURL(let text):
+                    if let url = MacroStep.normalizedURL(from: text) { performer.openURL(url) }
                 case .repeatSteps(let config):
                     guard depth < MacroRunner.maxRepeatNesting,
                           let block = MacroRunner.repeatRange(forStepAt: index, in: steps) else { continue }

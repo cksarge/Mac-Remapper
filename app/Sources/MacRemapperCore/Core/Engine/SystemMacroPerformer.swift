@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import AppKit
 
 /// Posts real keyboard/mouse events and runs shortcuts on behalf of running macros.
 ///
@@ -57,6 +58,28 @@ final class SystemMacroPerformer: MacroPerformer {
 
         if click.usesFixedPosition && click.returnsCursor {
             postMouse(.mouseMoved, at: originalLocation, button: .left)
+        }
+    }
+
+    func scroll(_ scroll: ScrollAction) {
+        // Pixel-unit wheel events; positive deltas scroll up. Split into modest pieces, since
+        // some apps clamp how far a single scroll event can move.
+        let sign: Int32 = scroll.direction == .up ? 1 : -1
+        var remaining = scroll.pixels
+        while remaining > 0 {
+            let piece = min(remaining, 100)
+            remaining -= piece
+            guard let event = CGEvent(scrollWheelEvent2Source: CGEventSource(stateID: .hidSystemState),
+                                      units: .pixel, wheelCount: 1, wheel1: sign * Int32(piece),
+                                      wheel2: 0, wheel3: 0) else { return }
+            event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
+            event.post(tap: .cghidEventTap)
+        }
+    }
+
+    func openURL(_ url: URL) {
+        DispatchQueue.main.async {
+            NSWorkspace.shared.open(url)
         }
     }
 

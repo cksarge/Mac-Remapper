@@ -202,6 +202,8 @@ final class RecordingPerformer: MacroPerformer {
     func click(_ click: MouseClick) { record("click") }
     func type(_ text: String, token: MacroRunToken) { self.token = token; record("type \(text)") }
     func runShortcut(_ shortcut: ShortcutRun, token: MacroRunToken) { self.token = token; record("shortcut") }
+    func scroll(_ scroll: ScrollAction) { record("scroll \(scroll.direction.rawValue) \(scroll.pixels)") }
+    func openURL(_ url: URL) { record("open \(url.absoluteString)") }
     func sleep(milliseconds: Int, token: MacroRunToken) { self.token = token; record("sleep \(milliseconds)") }
     func runConcurrently(_ work: @escaping () -> Void) { work() }
 }
@@ -220,6 +222,13 @@ do {
     clicker.cancelAfter = 5
     MacroRunner.start([MacroStep(action: .click(MouseClick())), MacroStep(action: .repeatSteps(forever))], performer: clicker)
     check(clicker.events == ["click", "sleep 10", "click", "sleep 10", "click"], "Autoclicker repeats until stopped")
+
+    var scroll = ScrollAction()
+    scroll.direction = .up
+    scroll.pixels = 240
+    let web = RecordingPerformer()
+    MacroRunner.start([MacroStep(action: .scroll(scroll)), MacroStep(action: .openURL("example.com"))], performer: web)
+    check(web.events == ["scroll up 240", "open https://example.com"], "Scroll and open-webpage steps run")
 }
 
 // MARK: - ProfileStore persistence

@@ -29,7 +29,7 @@ struct MenuHeaderView: View {
             Spacer(minLength: 20)
 
             Toggle("Remapping Enabled", isOn: $appState.isRemappingEnabled)
-                .toggleStyle(.switch)
+                .toggleStyle(MenuSwitchStyle())
                 .labelsHidden()
                 .disabled(!isTrusted)
         }
@@ -52,5 +52,33 @@ struct MenuHeaderView: View {
     private var statusColor: Color {
         if !isTrusted { return .orange }
         return appState.isRemappingEnabled ? .green : .secondary
+    }
+}
+
+/// A switch drawn in SwiftUI rather than the system `NSSwitch`. A menu's custom view never sits
+/// in the key window, and the system switch draws its "on" state gray (the inactive-window look)
+/// until it's clicked; this one always shows the accent color when on.
+private struct MenuSwitchStyle: ToggleStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.15)) { configuration.isOn.toggle() }
+        } label: {
+            Capsule()
+                .fill(configuration.isOn ? Color.accentColor : Color.secondary.opacity(0.35))
+                .frame(width: 38, height: 22)
+                .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                    Circle()
+                        .fill(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
+                        .padding(2)
+                }
+                .opacity(isEnabled ? 1 : 0.5)
+        }
+        .buttonStyle(.plain)
+        .accessibilityRepresentation {
+            Toggle(isOn: configuration.$isOn) { configuration.label }
+        }
     }
 }
